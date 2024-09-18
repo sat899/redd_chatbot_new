@@ -3,6 +3,7 @@ from utils import *
 import pandas as pd
 import streamlit as st
 from openai import OpenAI
+import re
 
 #Load item data
 #Outputs = list of items, and list of item descriptions
@@ -181,8 +182,19 @@ if user_input := st.chat_input("You:"):
     # Combine background and visible messages for the API call
     combined_messages = st.session_state.background_messages + st.session_state.visible_messages
 
+    # Simulate OpenAI response (we'll replace this with the actual response)
+    response = (
+        "This is the first paragraph of the assistant's response.\n\n"
+        "Here is the second paragraph with a space in between.\n\n"
+        "Finally, this is the third paragraph."
+    )
+
     # Generate and stream response from OpenAI
     with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+        
+        # Create the chat completion with streaming
         stream = client.chat.completions.create(
             model=st.session_state["openai_model"],
             messages=[
@@ -191,7 +203,18 @@ if user_input := st.chat_input("You:"):
             ],
             stream=True,
         )
-        response = st.write_stream(stream)
+        
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                full_response += chunk.choices[0].delta.content
+                # Split the full response into paragraphs
+                paragraphs = re.split(r'\n\s*\n', full_response.strip())
+                # Join paragraphs with double line breaks and display
+                formatted_response = "\n\n".join(paragraphs)
+                message_placeholder.markdown(formatted_response + "▌")
+        
+        # Remove the blinking cursor and display the final response
+        message_placeholder.markdown(formatted_response)
 
     # Add assistant message to visible conversation history
     st.session_state.visible_messages.append({"role": "assistant", "content": response})
