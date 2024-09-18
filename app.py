@@ -155,7 +155,7 @@ if 'background_messages' not in st.session_state:
 if 'visible_messages' not in st.session_state:
     st.session_state.visible_messages = []
     # Generate the greeting once and add it to visible messages
-    greeting = "Hello! Welcome to the REDD+ Academy. How can I help you today?"
+    greeting = "Hello! Welcome to the REDD+ Academy Learning Assistant. How can I help you today?"
     st.session_state.visible_messages.append({"role": "assistant", "content": greeting})
 
 # Display all visible messages
@@ -182,19 +182,11 @@ if user_input := st.chat_input("You:"):
     # Combine background and visible messages for the API call
     combined_messages = st.session_state.background_messages + st.session_state.visible_messages
 
-    # Simulate OpenAI response (we'll replace this with the actual response)
-    response = (
-        "This is the first paragraph of the assistant's response.\n\n"
-        "Here is the second paragraph with a space in between.\n\n"
-        "Finally, this is the third paragraph."
-    )
-
     # Generate and stream response from OpenAI
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
         
-        # Create the chat completion with streaming
         stream = client.chat.completions.create(
             model=st.session_state["openai_model"],
             messages=[
@@ -217,4 +209,7 @@ if user_input := st.chat_input("You:"):
         message_placeholder.markdown(formatted_response)
 
     # Add assistant message to visible conversation history
-    st.session_state.visible_messages.append({"role": "assistant", "content": response})
+    st.session_state.visible_messages.append({"role": "assistant", "content": formatted_response})
+
+    # Force a rerun to update the display with the new message
+    st.rerun()
