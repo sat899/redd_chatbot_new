@@ -155,7 +155,7 @@ if 'background_messages' not in st.session_state:
 if 'visible_messages' not in st.session_state:
     st.session_state.visible_messages = []
     # Generate the greeting once and add it to visible messages
-    greeting = "Hello! Welcome to the REDD+ Academy Learning Assistant. How can I help you today?"
+    greeting = "Hello! Welcome to the REDD+ Academy Website. How can I help you today?"
     st.session_state.visible_messages.append({"role": "assistant", "content": greeting})
 
 # Display all visible messages
