@@ -78,7 +78,7 @@ st.markdown(f"""
         <img src="data:image/png;base64,{logo_base64}" alt="REDD+ Logo" style="width: 70px; height: auto;">
         <div>
             <h1 style="margin: 0; font-size: 28px; color: #333; padding: 0;">REDD+ Academy Learning Assistant</h1>
-            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme</p>
+            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme (TEST)</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
