@@ -1,9 +1,9 @@
 name: CI/CD Pipeline
 #something
 on:
-  push:
+  pull_request:
     branches:
-      - test-ci-cd  # Change from test-ci-cd to main when ready for production
+      - main  # Trigger the workflow when a PR is merged into the `main` branch
 
 jobs:
   build-and-deploy:
@@ -40,7 +40,7 @@ jobs:
             cd ~/redd_chatbot_new
 
             # Pull the latest code from the test-ci-cd branch (or main if needed)
-            git pull origin test-ci-cd
+            git pull origin main
 
             # Build the Docker image
             docker build -t streamlit-app .
