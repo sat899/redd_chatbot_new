@@ -1,5 +1,5 @@
 name: CI/CD Pipeline
-
+#something
 on:
   pull_request:
     branches:
@@ -14,7 +14,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # Use GITHUB_TOKEN for authentication
+          # Use GITHUB_TOKEN for authentication
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Step 2: Set up SSH key using webfactory/ssh-agent
       - name: Set up SSH key
@@ -22,7 +23,15 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      # Step 3: Debug SSH Connection to EC2
+      # Step 3: Ensure `dev` is up to date with `main`
+      - name: Update dev branch with latest from main
+        run: |
+          git fetch origin
+          git checkout dev  # Ensure we're on the dev branch
+          git merge origin/main  # Merge the latest changes from main into dev
+          git push origin dev  # Push updates to dev if necessary
+
+      # Step 4: Debug SSH Connection
       - name: Debug SSH Connection
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }} 
@@ -30,7 +39,7 @@ jobs:
         run: |
           ssh -v -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo Connected successfully"
 
-      # Step 4: SSH into EC2 and Deploy the Application
+      # Step 5: SSH into EC2 and Deploy
       - name: SSH into EC2 and Deploy
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -41,12 +50,12 @@ jobs:
             # Navigate to the application directory
             cd ~/redd_chatbot_new
 
-            # Ensure we're on the correct branch and pull the latest changes from `main`
+            # Pull the latest code from the test-ci-cd branch (or main if needed)
             git checkout main
             git fetch origin
-            git reset --hard origin/main  # Sync with the latest remote `main` branch
+            git reset --hard origin/main
 
-            # Build the Docker image with the latest changes
+            # Build the Docker image
             docker build -t streamlit-app .
 
             # Stop and remove any existing container with the same name
