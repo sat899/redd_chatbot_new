@@ -13,6 +13,9 @@ jobs:
       # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          # Use GITHUB_TOKEN for authentication
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Step 2: Set up SSH key using webfactory/ssh-agent
       - name: Set up SSH key
