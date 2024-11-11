@@ -1,22 +1,22 @@
 name: CI/CD Pipeline
 
 on:
-  pull_request:
+  push:
     branches:
-      - main  # Trigger the workflow when a PR is merged into the `main` branch
+      - main  # Trigger the workflow when code is pushed to the `main` branch
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout code
+      # Step 1: Checkout the latest code
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}  # Use GITHUB_TOKEN for authentication
 
-      # Step 2: Set up SSH key using webfactory/ssh-agent
+      # Step 2: Set up SSH key to connect to EC2 instance
       - name: Set up SSH key
         uses: webfactory/ssh-agent@v0.5.0
         with:
@@ -36,7 +36,7 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          # SSH into EC2
+          # SSH into EC2 and deploy the latest code
           ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
             # Navigate to the application directory
             cd ~/redd_chatbot_new
@@ -44,9 +44,9 @@ jobs:
             # Ensure we're on the correct branch and pull the latest changes from `main`
             git checkout main
             git fetch origin
-            git reset --hard origin/main  # Sync with the latest remote `main` branch
+            git reset --hard origin/main  # Hard reset to sync with the latest changes from `main`
 
-            # Build the Docker image with the latest changes
+            # Build the Docker image
             docker build -t streamlit-app .
 
             # Stop and remove any existing container with the same name
