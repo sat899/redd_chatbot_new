@@ -14,6 +14,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Debug SSH Connection
+        run: |
+          ssh -v -i <(echo "${{ secrets.EC2_SSH_KEY }}") -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "echo Connected successfully"
+
       # Step 2: SSH into EC2 instance and deploy
       - name: SSH into EC2 and Deploy
         uses: appleboy/ssh-action@v0.1.3
