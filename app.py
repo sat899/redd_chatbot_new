@@ -66,7 +66,22 @@ few_shot_answer2 = read_file('prompts/few_shot_answer2.txt')
 client = OpenAI(api_key=key)
 
 # Streamlit app setup
-st.title("REDD+ Academy Learning Assistant")
+#st.title("REDD+ Academy Learning Assistant")
+#st.image("title_image.png", width = 60)
+
+#Load the image and convert to Base64
+logo_base64 = get_base64_image("avatar_image.png")
+
+#Embed the Base64 image in HTML
+st.markdown(f"""
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+        <img src="data:image/png;base64,{logo_base64}" alt="REDD+ Logo" style="width: 70px; height: auto;">
+        <div>
+            <h1 style="margin: 0; font-size: 28px; color: #333; padding: 0;">REDD+ Academy Learning Assistant</h1>
+            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 #st.write("""
 #This chatbot can provide you with recommendations of learning resources that are tailored to your individual needs. 
@@ -163,6 +178,12 @@ for message in st.session_state.visible_messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+#avatar_path = 'avatar_image.png'
+
+#for message in st.session_state.visible_messages:
+    #with st.chat_message(message["role"], avatar=avatar_path if message["role"] == "assistant" else None):
+        #st.markdown(message["content"])
+
 # Input prompt with st.chat_input
 if user_input := st.chat_input("You:"):
     # Add user message to visible conversation history
@@ -183,7 +204,7 @@ if user_input := st.chat_input("You:"):
     combined_messages = st.session_state.background_messages + st.session_state.visible_messages
 
     # Generate and stream response from OpenAI
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar = None):
         message_placeholder = st.empty()
         full_response = ""
         
@@ -199,9 +220,11 @@ if user_input := st.chat_input("You:"):
         for chunk in stream:
             if chunk.choices[0].delta.content is not None:
                 full_response += chunk.choices[0].delta.content
-                # Split the full response into paragraphs
+                
+                #Split the full response into paragraphs
                 paragraphs = re.split(r'\n\s*\n', full_response.strip())
-                # Join paragraphs with double line breaks and display
+                
+                #Join paragraphs with double line breaks and display
                 formatted_response = "\n\n".join(paragraphs)
                 message_placeholder.markdown(formatted_response + "▌")
         

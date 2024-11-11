@@ -10,6 +10,7 @@ from typing import List
 import numpy as np
 from scipy import spatial
 from sklearn.metrics.pairwise import cosine_similarity
+import base64
 
 #create_candidate_item_prompt function
 def create_candidate_item_prompt(items):
@@ -208,3 +209,8 @@ def retrieve_documents(query, doc_embeddings, document_chunks, model=EMBEDDING_M
     similarities = cosine_similarity([query_embedding], doc_embeddings)
     most_similar_idx = np.argmax(similarities)
     return document_chunks[most_similar_idx]
+
+# Function to load and encode the image as Base64
+def get_base64_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")

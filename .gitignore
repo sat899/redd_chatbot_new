@@ -1,7 +1,8 @@
 # own stuff
 .streamlit
 .env
-.pem
+un-redd-chatbot-keypair.pem
+*.pem
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
