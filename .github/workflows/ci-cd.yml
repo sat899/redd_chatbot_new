@@ -3,52 +3,60 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main # Change from test-ci-cd to main when ready for production
+      - test-ci-cd # Change from test-ci-cd to main when ready for production
 
 jobs:
-
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    # Store the SSH private key in GitHub secrets
-    - name: Set up SSH key
-      uses: webfactory/ssh-agent@v0.5.0
-      with:
-        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+      # Step 2: Set up SSH key using webfactory/ssh-agent
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.5.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-    - name: Debug SSH Connection
-      env:
-        EC2_HOST: ${{ secrets.EC2_HOST }} 
-        EC2_USER: ${{ secrets.EC2_USER }}
-      run: |
-        ssh -v -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo Connected successfully"
+      # Step 3: Debug SSH Connection
+      - name: Debug SSH Connection
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }} 
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -v -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo Connected successfully"
 
-    - name: SSH into EC2 and Deploy
-      env:
-        EC2_HOST: ${{ secrets.EC2_HOST }}
-        EC2_USER: ${{ secrets.EC2_USER }}
-        ENV_FILE: ${{ secrets.ENV_FILE }} # Store .env file in GitHub secrets
-      run: |
-        # Navigate to the application directory
-        cd ~/redd_chatbot_new
+      # Step 4: SSH into EC2 and Deploy
+      - name: SSH into EC2 and Deploy
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          ENV_FILE: "${{ secrets.ENV_FILE }}" # Store .env file contents in GitHub secrets
+        run: |
+          # SSH into EC2
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+            # Navigate to the application directory
+            cd ~/redd_chatbot_new
 
-        # Pull the latest code from the main branch
-        git pull origin main
-        
-        # Build the Docker image
-        docker build -t streamlit-app .
+            # Pull the latest code from the main branch
+            git pull origin test-ci-cd
 
-        # Stop and remove any existing container with the same name
-        docker stop streamlit-app || true
-        docker rm streamlit-app || true
+            # Write the .env file from the ENV_FILE secret
+            echo "$ENV_FILE" > .env
 
-        # Run the Docker container with environment variables and restart policy
-        docker run -d -p 8501:8501 \
-          --name streamlit-app \
-          --env-file $ENV_FILE \ # Load environment variables from the stored .env file
-          --restart unless-stopped \
-          streamlit-app
+            # Build the Docker image
+            docker build -t streamlit-app .
+
+            # Stop and remove any existing container with the same name
+            docker stop streamlit-app || true
+            docker rm streamlit-app || true
+
+            # Run the Docker container with environment variables and restart policy
+            docker run -d -p 8501:8501 \
+              --name streamlit-app \
+              --env-file .env \
+              --restart unless-stopped \
+              streamlit-app
+          EOF

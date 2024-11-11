@@ -3,6 +3,7 @@
 .env
 un-redd-chatbot-keypair.pem
 *.pem
+token.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
