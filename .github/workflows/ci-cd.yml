@@ -40,7 +40,9 @@ jobs:
             cd ~/redd_chatbot_new
 
             # Pull the latest code from the test-ci-cd branch (or main if needed)
-            git pull origin main
+            git checkout main
+            git fetch origin
+            git reset --hard origin/main
 
             # Build the Docker image
             docker build -t streamlit-app .
