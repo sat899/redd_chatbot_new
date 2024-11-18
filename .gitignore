@@ -4,6 +4,10 @@
 un-redd-chatbot-keypair.pem
 *.pem
 token.txt
+create_items.ipynb
+widgets.csv
+new_items.csv
+pages.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

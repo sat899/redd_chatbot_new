@@ -22,20 +22,30 @@ item_descriptions_prompt_string = create_item_descriptions_prompt(item_descripti
 links_prompt_string = create_links_prompt(links)
 
 #Create embeddings of item descriptions, and turn into dict
-item_embeddings = get_item_embeddings(item_descriptions)
+#item_embeddings = get_item_embeddings(item_descriptions)
+item_embeddings = cache_item_embeddings(item_descriptions)
 item_embeddings = dict(zip(items, item_embeddings))
 
 #Load background data and split into chunks
 #Output = list of chunked up background text
-background_docs = load_documents('downloaded_pdfs')
+#background_docs = load_documents('downloaded_pdfs')
 
-background_docs_chunks = []
+#background_docs_chunks = []
 
-for doc in background_docs:
-    background_docs_chunks.extend(split_text_into_chunks(doc))
+#for doc in background_docs:
+    #background_docs_chunks.extend(split_text_into_chunks(doc))
 
 #Create embeddings of background documents
-doc_embeddings = get_doc_embeddings(background_docs_chunks)
+#doc_embeddings = get_doc_embeddings(background_docs_chunks)
+
+# Cache background document chunks
+background_docs_chunks = cache_document_chunks('downloaded_pdfs')
+
+# Cache document embeddings
+doc_embeddings = cache_doc_embeddings(background_docs_chunks)
+
+# Create or load FAISS index
+faiss_index = create_faiss_index(doc_embeddings)
 
 #Load user data
 test_data = pd.read_csv('testing.csv')
@@ -52,7 +62,23 @@ user_profile_prompt_string = f"The user's profile information is as follows: the
 bio_prompt_string = f"In addition the user has provided the following biographical information about themselves (note that in some cases this biographical information is blank, in which case you should disregard it): {user_data.iloc[0]['text']}."
 
 #Get similar items
-similiar_item_prompt_string, top_3 = get_similar_items(interacted_items, item_embeddings)
+#similiar_item_prompt_string, top_3 = get_similar_items(interacted_items, item_embeddings)
+item_faiss_index, item_list = create_item_faiss_index(item_embeddings)
+
+# Retrieve similar items using FAISS
+if interacted_items:
+    avg_embedding = average_embeddings(interacted_items, item_embeddings)
+    top_3 = retrieve_similar_items(avg_embedding, item_faiss_index, item_list)
+    similiar_item_prompt_string = (
+        "This is a list of the most similar items to the ones the user has already interacted with. "
+        "Items are ranked by their similarity (lower distance = more similar):\n"
+        + "\n".join(f"- {item}" for item in top_3)
+    )
+else:
+    similiar_item_prompt_string = (
+        "The user has not interacted with any items yet. Recommendations are based on profile information and biography."
+    )
+    top_3 = []
 
 #Create prompts / messages
 task_prompt = read_file('prompts/task_prompt.txt')
@@ -78,7 +104,7 @@ st.markdown(f"""
         <img src="data:image/png;base64,{logo_base64}" alt="REDD+ Logo" style="width: 70px; height: auto;">
         <div>
             <h1 style="margin: 0; font-size: 28px; color: #333; padding: 0;">REDD+ Academy Learning Assistant</h1>
-            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme (TEST4)</p>
+            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme (TEST5)</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -194,7 +220,10 @@ if user_input := st.chat_input("You:"):
         st.markdown(user_input)
 
     # Retrieve relevant text based on the user's input
-    retrieved_text = retrieve_documents(user_input, doc_embeddings, background_docs_chunks)
+    #retrieved_text = retrieve_documents(user_input, doc_embeddings, background_docs_chunks)
+
+    # Retrieve relevant text using FAISS
+    retrieved_text = retrieve_documents(user_input, faiss_index, background_docs_chunks)
 
     # Add retrieved context to the background conversation history
     context = f"Context: {retrieved_text}\n\nUser Query: {user_input}"

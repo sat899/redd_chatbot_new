@@ -8,6 +8,7 @@ import pandas as pd
 import pickle
 from typing import List
 import numpy as np
+import faiss
 from scipy import spatial
 from sklearn.metrics.pairwise import cosine_similarity
 import base64
@@ -204,11 +205,75 @@ def get_similar_items(interacted_items, item_embeddings):
     return similiar_item_prompt_string, top_3
 
 #retrieve_documents function
-def retrieve_documents(query, doc_embeddings, document_chunks, model=EMBEDDING_MODEL):
-    query_embedding = get_embedding(query, model=model)
-    similarities = cosine_similarity([query_embedding], doc_embeddings)
-    most_similar_idx = np.argmax(similarities)
-    return document_chunks[most_similar_idx]
+#def retrieve_documents(query, doc_embeddings, document_chunks, model=EMBEDDING_MODEL):
+    #query_embedding = get_embedding(query, model=model)
+    #similarities = cosine_similarity([query_embedding], doc_embeddings)
+    #most_similar_idx = np.argmax(similarities)
+    #return document_chunks[most_similar_idx]
+
+def create_faiss_index(embeddings, index_path="faiss_index.bin"):
+    if os.path.exists(index_path):
+        return load_faiss_index(index_path)
+    dimension = len(embeddings[0])
+    index = faiss.IndexFlatL2(dimension)
+    index.add(np.array(embeddings))
+    save_faiss_index(index, index_path)
+    return index
+
+def save_faiss_index(index, path="faiss_index.bin"):
+    faiss.write_index(index, path)
+
+def load_faiss_index(path="faiss_index.bin"):
+    return faiss.read_index(path)
+
+def retrieve_documents(query, index, document_chunks, model=EMBEDDING_MODEL):
+    query_embedding = np.array(get_embedding(query, model=model)).reshape(1, -1)
+    _, indices = index.search(query_embedding, 1)
+    return document_chunks[indices[0][0]]
+
+
+def cache_document_chunks(directory, cache_path="background_docs_chunks.pkl"):
+    if os.path.exists(cache_path):
+        with open(cache_path, "rb") as file:
+            return pickle.load(file)
+    documents = load_documents(directory)
+    chunks = []
+    for doc in documents:
+        chunks.extend(split_text_into_chunks(doc))
+    with open(cache_path, "wb") as file:
+        pickle.dump(chunks, file)
+    return chunks
+
+
+def cache_doc_embeddings(chunks, model=EMBEDDING_MODEL, cache_path="doc_embeddings.pkl"):
+    if os.path.exists(cache_path):
+        with open(cache_path, "rb") as file:
+            return pickle.load(file)
+    embeddings = get_doc_embeddings(chunks, model=model)
+    with open(cache_path, "wb") as file:
+        pickle.dump(embeddings, file)
+    return embeddings
+
+def cache_item_embeddings(strings, model=EMBEDDING_MODEL, cache_path="item_embeddings.pkl"):
+    if os.path.exists(cache_path):
+        with open(cache_path, "rb") as file:
+            return pickle.load(file)
+    embeddings = get_item_embeddings(strings, model)
+    with open(cache_path, "wb") as file:
+        pickle.dump(embeddings, file)
+    return embeddings
+
+
+def create_item_faiss_index(item_embeddings):
+    dimension = len(next(iter(item_embeddings.values())))
+    index = faiss.IndexFlatL2(dimension)
+    embeddings_array = np.array(list(item_embeddings.values()))
+    index.add(embeddings_array)
+    return index, list(item_embeddings.keys())
+
+def retrieve_similar_items(query_embedding, index, item_list, top_k=3):
+    _, indices = index.search(np.array([query_embedding]), top_k)
+    return [item_list[i] for i in indices[0]]
 
 # Function to load and encode the image as Base64
 def get_base64_image(image_path):
