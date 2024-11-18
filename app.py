@@ -255,6 +255,7 @@ if user_input := st.chat_input("You:"):
                 
                 #Join paragraphs with double line breaks and display
                 formatted_response = "\n\n".join(paragraphs)
+                formatted_response = formatted_response.replace("\n", "\n\n")
                 message_placeholder.markdown(formatted_response + "▌")
         
         # Remove the blinking cursor and display the final response
