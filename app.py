@@ -7,7 +7,8 @@ import re
 
 #Load item data
 #Outputs = list of items, and list of item descriptions
-item_data = pd.read_csv('item_descriptions.csv', encoding='cp1252')
+#item_data = pd.read_csv('item_descriptions.csv', encoding='cp1252')
+item_data = pd.read_csv('new_items_2.csv', encoding='utf-8')
 items = item_data["item"].tolist()
 item_descriptions = item_data["description"].tolist()
 links = item_data["link"].tolist()
@@ -23,8 +24,8 @@ links_prompt_string = create_links_prompt(links)
 
 #Create embeddings of item descriptions, and turn into dict
 #item_embeddings = get_item_embeddings(item_descriptions)
-item_embeddings = cache_item_embeddings(item_descriptions)
-item_embeddings = dict(zip(items, item_embeddings))
+#item_embeddings = cache_item_embeddings(item_descriptions)
+#item_embeddings = dict(zip(items, item_embeddings))
 
 #Load background data and split into chunks
 #Output = list of chunked up background text
@@ -48,37 +49,37 @@ doc_embeddings = cache_doc_embeddings(background_docs_chunks)
 faiss_index = create_faiss_index(doc_embeddings)
 
 #Load user data
-test_data = pd.read_csv('testing.csv')
-user_email = 'user2@test.com'
-user_data = test_data[test_data['user email'] == user_email]
+#test_data = pd.read_csv('testing.csv')
+#user_email = 'user2@test.com'
+#user_data = test_data[test_data['user email'] == user_email]
 
 #Extract items user has already interacted with
-interacted_items, interaction_prompt_string = extract_interactions(user_data, items)
+#interacted_items, interaction_prompt_string = extract_interactions(user_data, items)
 
 #Extract profile information
-user_profile_prompt_string = f"The user's profile information is as follows: their gender is {user_data.iloc[0]['Gender.1']}, their country is {user_data.iloc[0]['new_country']}, their role is {user_data.iloc[0]['new_role']}, their stakeholder group is {user_data.iloc[0]['Stakeholder Group']}, their organization is {user_data.iloc[0]['Organization']}"
+#user_profile_prompt_string = f"The user's profile information is as follows: their gender is {user_data.iloc[0]['Gender.1']}, their country is {user_data.iloc[0]['new_country']}, their role is {user_data.iloc[0]['new_role']}, their stakeholder group is {user_data.iloc[0]['Stakeholder Group']}, their organization is {user_data.iloc[0]['Organization']}"
 
 #Extract biographical information
-bio_prompt_string = f"In addition the user has provided the following biographical information about themselves (note that in some cases this biographical information is blank, in which case you should disregard it): {user_data.iloc[0]['text']}."
+#bio_prompt_string = f"In addition the user has provided the following biographical information about themselves (note that in some cases this biographical information is blank, in which case you should disregard it): {user_data.iloc[0]['text']}."
 
 #Get similar items
 #similiar_item_prompt_string, top_3 = get_similar_items(interacted_items, item_embeddings)
-item_faiss_index, item_list = create_item_faiss_index(item_embeddings)
+#item_faiss_index, item_list = create_item_faiss_index(item_embeddings)
 
 # Retrieve similar items using FAISS
-if interacted_items:
-    avg_embedding = average_embeddings(interacted_items, item_embeddings)
-    top_3 = retrieve_similar_items(avg_embedding, item_faiss_index, item_list)
-    similiar_item_prompt_string = (
-        "This is a list of the most similar items to the ones the user has already interacted with. "
-        "Items are ranked by their similarity (lower distance = more similar):\n"
-        + "\n".join(f"- {item}" for item in top_3)
-    )
-else:
-    similiar_item_prompt_string = (
-        "The user has not interacted with any items yet. Recommendations are based on profile information and biography."
-    )
-    top_3 = []
+# if interacted_items:
+#     avg_embedding = average_embeddings(interacted_items, item_embeddings)
+#     top_3 = retrieve_similar_items(avg_embedding, item_faiss_index, item_list)
+#     similiar_item_prompt_string = (
+#         "This is a list of the most similar items to the ones the user has already interacted with. "
+#         "Items are ranked by their similarity (lower distance = more similar):\n"
+#         + "\n".join(f"- {item}" for item in top_3)
+#     )
+# else:
+#     similiar_item_prompt_string = (
+#         "The user has not interacted with any items yet. Recommendations are based on profile information and biography."
+#     )
+#     top_3 = []
 
 #Create prompts / messages
 task_prompt = read_file('prompts/task_prompt.txt')
@@ -87,6 +88,10 @@ task_reiteration = read_file('prompts/task_reiteration.txt')
 few_shot_answer1 = read_file('prompts/few_shot_answer1.txt')
 few_shot_example2 = read_file('prompts/few_shot_example2.txt')
 few_shot_answer2 = read_file('prompts/few_shot_answer2.txt')
+#recommendation_example = read_file('prompts/recommendation_example.txt')
+recommendation_answer = read_file('prompts/recommendation_answer.txt')
+#summarisation_example = read_file('prompts/summarisation_example.txt')
+summarisation_answer = read_file('prompts/summarisation_answer.txt')
 
 # Initialize OpenAI client
 client = OpenAI(api_key=key)
@@ -104,7 +109,7 @@ st.markdown(f"""
         <img src="data:image/png;base64,{logo_base64}" alt="REDD+ Logo" style="width: 70px; height: auto;">
         <div>
             <h1 style="margin: 0; font-size: 28px; color: #333; padding: 0;">REDD+ Academy Learning Assistant</h1>
-            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme (TEST5)</p>
+            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme (TEST6)</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -134,61 +139,77 @@ if 'background_messages' not in st.session_state:
     #Provide the descriptions for each candidate item
     {"role": "system", "content": item_descriptions_prompt_string},
 
-    ####Few-shot example 1
+    ###Few-shot example - recommendation
+
+    #Provide prompt
+    {"role": "user", "content": "This is an example of a recommendation task / question: I am looking for resources related to REDD+ finance", "example": True},
+    
+    #Provide expected output
+    {"role": "assistant", "content": f"this is an example of a good answer to this question{recommendation_answer}", "example": True},
+
+    ###Few-shot example - summarisation
+
+    #Provide prompt
+    {"role": "user", "content": "This is an example of a summarisation task / question: Tell me about how to develop a nested system for REDD+", "example": True},
+    
+    #Provide expected output
+    {"role": "assistant", "content": f"this is an example of a good answer to this question{summarisation_answer}", "example": True},
+
+    ####Few-shot example - personalisation 1
 
     #Provide details of which items the user has already interacted with
     #Provide information about similar items to the one(s) that the user has already interacted with
     #Provide details about the user's profile
     #Provide details about the user's biography
     #Provide details of user group preferences
-    {"role": "system", "content": few_shot_example1},
+    #{"role": "system", "content": few_shot_example1},
     
     #Reiterate the task
-    {"role": "system", "content": task_reiteration},
-    {"role": "system", "content": "Remember that you should not recommend items that the user has already interacted with, which are FREL (FAO), NFMS (FAO), PAM (FAO). If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are Carbon markets for REDD+ (UNEP), REDD+ finance (UNEP), REDD+ safeguards (UNEP)"},
+    #{"role": "system", "content": task_reiteration},
+    #{"role": "system", "content": "Remember that you should not recommend items that the user has already interacted with, which are FREL (FAO), NFMS (FAO), PAM (FAO). If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are Carbon markets for REDD+ (UNEP), REDD+ finance (UNEP), REDD+ safeguards (UNEP)"},
     
     #Provide prompt
-    {"role": "user", "content": "Which items would you recommend to me?", "example": True},
+    #{"role": "user", "content": "Which items would you recommend to me?", "example": True},
     
     #Provide expected output
-    {"role": "assistant", "content": few_shot_answer1, "example": True},
+    #{"role": "assistant", "content": few_shot_answer1, "example": True},
 
-    ####Few-shot example 2
+    ####Few-shot example - personalisation 2
 
     #Provide details of which items the user has already interacted with
     #Provide information about similar items to the one(s) that the user has already interacted with
     #Provide details about the user's profile
     #Provide details about the user's biography
     #Provide details of user group preferences
-    {"role": "system", "content": few_shot_example2},
+    #{"role": "system", "content": few_shot_example2},
 
     #Reiterate the task
-    {"role": "system", "content": task_reiteration},
-    {"role": "system", "content": "Remember that you should not recommend items that the user has already interacted with, which are REDD+ finance (UNEP), Gender and REDD+ (UNDP), REDD+ under UNFCCC (UNDP), Social inclusion and stakeholder engagement (UNDP), REDD+ safeguards (UNEP). If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are FREL (FAO), National Strategies and Action Plans (UNDP), NFMS (FAO)"},
+    #{"role": "system", "content": task_reiteration},
+    #{"role": "system", "content": "Remember that you should not recommend items that the user has already interacted with, which are REDD+ finance (UNEP), Gender and REDD+ (UNDP), REDD+ under UNFCCC (UNDP), Social inclusion and stakeholder engagement (UNDP), REDD+ safeguards (UNEP). If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are FREL (FAO), National Strategies and Action Plans (UNDP), NFMS (FAO)"},
     
     #Provide prompt
-    {"role": "user", "content": "Which items would you recommend to me? I have a particular interest in forest monitoring", "example": True},
+    #{"role": "user", "content": "Which items would you recommend to me? I have a particular interest in forest monitoring", "example": True},
 
     #Provide expected output
-    {"role": "assistant", "content": few_shot_answer2, "example": True},
+    #{"role": "assistant", "content": few_shot_answer2, "example": True},
 
     ####Actual task
 
     #Provide details of which items the user has already interacted with
-    {"role": "system", "content": interaction_prompt_string},
+    #{"role": "system", "content": interaction_prompt_string},
 
     #Provide information about similar items to the one(s) that the user has already interacted with
-    {"role": "system", "content": similiar_item_prompt_string},
+    #{"role": "system", "content": similiar_item_prompt_string},
     
     #Provide details about the user's profile
-    {"role": "system", "content": user_profile_prompt_string},
+    #{"role": "system", "content": user_profile_prompt_string},
     
     #Provide details about the user's biography
-    {"role": "system", "content": bio_prompt_string},
+    #{"role": "system", "content": bio_prompt_string},
     
     #Reiterate the task
-    {"role": "system", "content": task_reiteration},
-    {"role": "system", "content": f"Remember that you should not recommend items that the user has already interacted with, which are {interacted_items}. If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are {top_3}"},
+    #{"role": "system", "content": task_reiteration},
+    #{"role": "system", "content": f"Remember that you should not recommend items that the user has already interacted with, which are {interacted_items}. If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are {top_3}"},
     
   ]
     
@@ -224,6 +245,9 @@ if user_input := st.chat_input("You:"):
 
     # Retrieve relevant text using FAISS
     retrieved_text = retrieve_documents(user_input, faiss_index, background_docs_chunks)
+
+    # Print the retrieved context for testing
+    print(f"Retrieved Context:\n{retrieved_text}\n")
 
     # Add retrieved context to the background conversation history
     context = f"Context: {retrieved_text}\n\nUser Query: {user_input}"
