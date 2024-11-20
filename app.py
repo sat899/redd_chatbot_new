@@ -8,7 +8,7 @@ import re
 #Load item data
 #Outputs = list of items, and list of item descriptions
 #item_data = pd.read_csv('item_descriptions.csv', encoding='cp1252')
-item_data = pd.read_csv('new_items_2.csv', encoding='utf-8')
+item_data = pd.read_csv('new_items_3.csv', encoding='utf-8')
 items = item_data["item"].tolist()
 item_descriptions = item_data["description"].tolist()
 links = item_data["link"].tolist()
@@ -109,7 +109,7 @@ st.markdown(f"""
         <img src="data:image/png;base64,{logo_base64}" alt="REDD+ Logo" style="width: 70px; height: auto;">
         <div>
             <h1 style="margin: 0; font-size: 28px; color: #333; padding: 0;">REDD+ Academy Learning Assistant</h1>
-            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme (TEST6)</p>
+            <p style="margin: 3px 0 0 0; color: #666; font-size: 14px; padding: 0; line-height: 1.1;">Developed by the UN-REDD Programme (TEST7)</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -247,14 +247,23 @@ if user_input := st.chat_input("You:"):
     retrieved_text = retrieve_documents(user_input, faiss_index, background_docs_chunks)
 
     # Print the retrieved context for testing
-    print(f"Retrieved Context:\n{retrieved_text}\n")
+    #print(f"Retrieved Context:\n{retrieved_text}\n")
 
     # Add retrieved context to the background conversation history
     context = f"Context: {retrieved_text}\n\nUser Query: {user_input}"
     st.session_state.background_messages.append({"role": "system", "content": context})
 
+    # Add a final reminder prompt for the bot
+    final_reminder = "Reminder: you should do one of two tasks, either recommendation or summarisation. Based on the user's query, decide which task to do and refer to the previous examples for examples of how to respond. For recommendation tasks any links you recommend should come from the list shared previously. Please prioritise the links to learning journals and PDFs on the howspace webiste and the un-redd.org website. Specifically do not recommend any links starting with unredd.net"
+    st.session_state.background_messages.append({"role": "system", "content": final_reminder})
+
     # Combine background and visible messages for the API call
     combined_messages = st.session_state.background_messages + st.session_state.visible_messages
+
+    # Print combined messages for debugging
+    print("Combined Messages:")
+    for msg in combined_messages:
+        print(f"Role: {msg['role']}, Content: {msg['content']}\n")
 
     # Generate and stream response from OpenAI
     with st.chat_message("assistant", avatar = None):

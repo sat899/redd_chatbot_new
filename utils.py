@@ -34,9 +34,7 @@ def create_item_descriptions_prompt(item_descriptions):
 #create_links_prompt function
 def create_links_prompt(links):
     # Ensure all entries are strings and handle non-string or missing values
-    links_string = ", ".join(
-        [str(link).replace('_', ' ') if pd.notna(link) else "N/A" for link in links]
-    )
+    links_string = ", ".join([str(link).replace('_', ' ') if pd.notna(link) else "N/A" for link in links])
     links_prompt_string = f"The links for each candidate item are (in the same order as the candidate items): {links_string}. Note: you should only recommend these links and never anything else"
     return links_prompt_string
 
