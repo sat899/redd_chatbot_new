@@ -52,15 +52,15 @@ client = OpenAI(api_key=key)
 encoding = tiktoken.encoding_for_model(EMBEDDING_MODEL)
 
 #Set file paths for embedding caches
-embedding_cache_path_items = "items_embeddings_cache.pkl"
+#embedding_cache_path_items = "items_embeddings_cache.pkl"
 embedding_cache_path_docs = "documents_embeddings_cache.pkl"
 
 #Load caches if they exist, else initialize empty caches
 #Code from https://cookbook.openai.com/examples/recommendation_using_embeddings
-try:
-    embedding_cache_items = pd.read_pickle(embedding_cache_path_items)
-except FileNotFoundError:
-    embedding_cache_items = {}
+# try:
+#     embedding_cache_items = pd.read_pickle(embedding_cache_path_items)
+# except FileNotFoundError:
+#     embedding_cache_items = {}
 
 try:
     embedding_cache_docs = pd.read_pickle(embedding_cache_path_docs)
@@ -68,8 +68,9 @@ except FileNotFoundError:
     embedding_cache_docs = {}
 
 #Save the caches back to disk (optional, to ensure they exist from the start)
-with open(embedding_cache_path_items, "wb") as embedding_cache_file_items:
-    pickle.dump(embedding_cache_items, embedding_cache_file_items)
+# with open(embedding_cache_path_items, "wb") as embedding_cache_file_items:
+#     pickle.dump(embedding_cache_items, embedding_cache_file_items)
+
 with open(embedding_cache_path_docs, "wb") as embedding_cache_file_docs:
     pickle.dump(embedding_cache_docs, embedding_cache_file_docs)
 
@@ -103,24 +104,24 @@ def embedding_from_string(
 
 #get_item_embeddings function
 #Adapted from recommendations_from_strings function. Original at: https://platform.openai.com/docs/guides/embeddings/use-cases
-def get_item_embeddings(strings: List[str], model=EMBEDDING_MODEL):
-    """Get embeddings for all recommendation strings."""
-    item_embeddings = [
-        embedding_from_string(
-            string, model=model, embedding_cache=embedding_cache_items, embedding_cache_path=embedding_cache_path_items
-        ) for string in strings
-    ]
-    return item_embeddings
+# def get_item_embeddings(strings: List[str], model=EMBEDDING_MODEL):
+#     """Get embeddings for all recommendation strings."""
+#     item_embeddings = [
+#         embedding_from_string(
+#             string, model=model, embedding_cache=embedding_cache_items, embedding_cache_path=embedding_cache_path_items
+#         ) for string in strings
+#     ]
+#     return item_embeddings
 
-#cache_item_embeddings function
-def cache_item_embeddings(strings, model=EMBEDDING_MODEL, cache_path="item_embeddings.pkl"):
-    if os.path.exists(cache_path):
-        with open(cache_path, "rb") as file:
-            return pickle.load(file)
-    embeddings = get_item_embeddings(strings, model)
-    with open(cache_path, "wb") as file:
-        pickle.dump(embeddings, file)
-    return embeddings
+# #cache_item_embeddings function
+# def cache_item_embeddings(strings, model=EMBEDDING_MODEL, cache_path="item_embeddings.pkl"):
+#     if os.path.exists(cache_path):
+#         with open(cache_path, "rb") as file:
+#             return pickle.load(file)
+#     embeddings = get_item_embeddings(strings, model)
+#     with open(cache_path, "wb") as file:
+#         pickle.dump(embeddings, file)
+#     return embeddings
 
 #load_documents function
 def load_documents(directory):
@@ -197,35 +198,35 @@ def create_faiss_index(embeddings, index_path="faiss_index.bin"):
     return index
 
 #extract_interactions function
-def extract_interactions(user_data, candidate_items):
+# def extract_interactions(user_data, candidate_items):
 
-    interacted_items = [
-        column for column in user_data.columns 
-        if user_data[column].values[0] == 1 and column in candidate_items
-    ]
+#     interacted_items = [
+#         column for column in user_data.columns 
+#         if user_data[column].values[0] == 1 and column in candidate_items
+#     ]
     
-    interactions_string = ", ".join(interacted_items).replace('_', ' ')
-    interaction_prompt_string = f"The user has interacted with the following items in the past (in no particular order): {interactions_string}."
-    return interacted_items, interaction_prompt_string
+#     interactions_string = ", ".join(interacted_items).replace('_', ' ')
+#     interaction_prompt_string = f"The user has interacted with the following items in the past (in no particular order): {interactions_string}."
+#     return interacted_items, interaction_prompt_string
 
 #create_item_faiss_index function
-def create_item_faiss_index(item_embeddings):
-    dimension = len(next(iter(item_embeddings.values())))
-    index = faiss.IndexFlatL2(dimension)
-    embeddings_array = np.array(list(item_embeddings.values()))
-    index.add(embeddings_array)
-    return index, list(item_embeddings.keys())
+# def create_item_faiss_index(item_embeddings):
+#     dimension = len(next(iter(item_embeddings.values())))
+#     index = faiss.IndexFlatL2(dimension)
+#     embeddings_array = np.array(list(item_embeddings.values()))
+#     index.add(embeddings_array)
+#     return index, list(item_embeddings.keys())
 
-#average_embeddings function
-def average_embeddings(interacted_items, item_embeddings):
-    user_embeddings = [item_embeddings[item] for item in interacted_items]
-    average_embedding = np.mean(user_embeddings, axis=0)
-    return average_embedding
+# #average_embeddings function
+# def average_embeddings(interacted_items, item_embeddings):
+#     user_embeddings = [item_embeddings[item] for item in interacted_items]
+#     average_embedding = np.mean(user_embeddings, axis=0)
+#     return average_embedding
 
-#retrieve_similar_items function
-def retrieve_similar_items(query_embedding, index, item_list, top_k=3):
-    _, indices = index.search(np.array([query_embedding]), top_k)
-    return [item_list[i] for i in indices[0]]
+# #retrieve_similar_items function
+# def retrieve_similar_items(query_embedding, index, item_list, top_k=3):
+#     _, indices = index.search(np.array([query_embedding]), top_k)
+#     return [item_list[i] for i in indices[0]]
 
 # #new_item_distances function
 # #Adapted from distances_from_embeddings function. Original at: https://github.com/openai/openai-python/blob/release-v0.28.1/openai/embeddings_utils.py

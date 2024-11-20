@@ -88,17 +88,11 @@ task_reiteration = read_file('prompts/task_reiteration.txt')
 few_shot_answer1 = read_file('prompts/few_shot_answer1.txt')
 few_shot_example2 = read_file('prompts/few_shot_example2.txt')
 few_shot_answer2 = read_file('prompts/few_shot_answer2.txt')
-#recommendation_example = read_file('prompts/recommendation_example.txt')
 recommendation_answer = read_file('prompts/recommendation_answer.txt')
-#summarisation_example = read_file('prompts/summarisation_example.txt')
 summarisation_answer = read_file('prompts/summarisation_answer.txt')
 
 # Initialize OpenAI client
 client = OpenAI(api_key=key)
-
-# Streamlit app setup
-#st.title("REDD+ Academy Learning Assistant")
-#st.image("title_image.png", width = 60)
 
 #Load the image and convert to Base64
 logo_base64 = get_base64_image("avatar_image.png")
@@ -113,11 +107,6 @@ st.markdown(f"""
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-#st.write("""
-#This chatbot can provide you with recommendations of learning resources that are tailored to your individual needs. 
-#Simply enter a query and hit enter to start the conversation.
-#""")
 
 # Initialize Streamlit session state variables
 if "openai_model" not in st.session_state:
@@ -224,12 +213,6 @@ if 'visible_messages' not in st.session_state:
 for message in st.session_state.visible_messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
-#avatar_path = 'avatar_image.png'
-
-#for message in st.session_state.visible_messages:
-    #with st.chat_message(message["role"], avatar=avatar_path if message["role"] == "assistant" else None):
-        #st.markdown(message["content"])
 
 # Input prompt with st.chat_input
 if user_input := st.chat_input("You:"):
