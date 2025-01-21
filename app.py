@@ -6,88 +6,38 @@ from openai import OpenAI
 import re
 
 #Load item data
-#Outputs = list of items, and list of item descriptions
-#item_data = pd.read_csv('item_descriptions.csv', encoding='cp1252')
-item_data = pd.read_csv('new_items_3.csv', encoding='utf-8')
+#Outputs = list of items, list of item descriptions, list of links
+item_data = pd.read_csv('item_descriptions.csv', encoding='utf-8')
 items = item_data["item"].tolist()
 item_descriptions = item_data["description"].tolist()
+item_descriptions = [str(description) for description in item_descriptions]
 links = item_data["link"].tolist()
 
 #Create candidate item prompt string
 candidate_prompt_string = create_candidate_item_prompt(items)
 
-#Create item descriptions prompt string
-item_descriptions_prompt_string = create_item_descriptions_prompt(item_descriptions)
-
 #Create links prompt string
 links_prompt_string = create_links_prompt(links)
 
 #Create embeddings of item descriptions, and turn into dict
-#item_embeddings = get_item_embeddings(item_descriptions)
-#item_embeddings = cache_item_embeddings(item_descriptions)
-#item_embeddings = dict(zip(items, item_embeddings))
+item_embeddings = get_item_embeddings(item_descriptions)
+item_embeddings = cache_item_embeddings(item_descriptions)
+item_embeddings = dict(zip(items, item_embeddings))
 
-#Load background data and split into chunks
-#Output = list of chunked up background text
-#background_docs = load_documents('downloaded_pdfs')
+# Create or load item FAISS index
+item_faiss_index, item_list = create_item_faiss_index(item_embeddings)
 
-#background_docs_chunks = []
-
-#for doc in background_docs:
-    #background_docs_chunks.extend(split_text_into_chunks(doc))
-
-#Create embeddings of background documents
-#doc_embeddings = get_doc_embeddings(background_docs_chunks)
-
-# Cache background document chunks
+# Load and cache background document chunks
 background_docs_chunks = cache_document_chunks('downloaded_pdfs')
 
 # Cache document embeddings
 doc_embeddings = cache_doc_embeddings(background_docs_chunks)
 
-# Create or load FAISS index
-faiss_index = create_faiss_index(doc_embeddings)
-
-#Load user data
-#test_data = pd.read_csv('testing.csv')
-#user_email = 'user2@test.com'
-#user_data = test_data[test_data['user email'] == user_email]
-
-#Extract items user has already interacted with
-#interacted_items, interaction_prompt_string = extract_interactions(user_data, items)
-
-#Extract profile information
-#user_profile_prompt_string = f"The user's profile information is as follows: their gender is {user_data.iloc[0]['Gender.1']}, their country is {user_data.iloc[0]['new_country']}, their role is {user_data.iloc[0]['new_role']}, their stakeholder group is {user_data.iloc[0]['Stakeholder Group']}, their organization is {user_data.iloc[0]['Organization']}"
-
-#Extract biographical information
-#bio_prompt_string = f"In addition the user has provided the following biographical information about themselves (note that in some cases this biographical information is blank, in which case you should disregard it): {user_data.iloc[0]['text']}."
-
-#Get similar items
-#similiar_item_prompt_string, top_3 = get_similar_items(interacted_items, item_embeddings)
-#item_faiss_index, item_list = create_item_faiss_index(item_embeddings)
-
-# Retrieve similar items using FAISS
-# if interacted_items:
-#     avg_embedding = average_embeddings(interacted_items, item_embeddings)
-#     top_3 = retrieve_similar_items(avg_embedding, item_faiss_index, item_list)
-#     similiar_item_prompt_string = (
-#         "This is a list of the most similar items to the ones the user has already interacted with. "
-#         "Items are ranked by their similarity (lower distance = more similar):\n"
-#         + "\n".join(f"- {item}" for item in top_3)
-#     )
-# else:
-#     similiar_item_prompt_string = (
-#         "The user has not interacted with any items yet. Recommendations are based on profile information and biography."
-#     )
-#     top_3 = []
+# Create or load document FAISS index
+doc_faiss_index = create_doc_faiss_index(doc_embeddings)
 
 #Create prompts / messages
 task_prompt = read_file('prompts/task_prompt.txt')
-few_shot_example1 = read_file('prompts/few_shot_example1.txt')
-task_reiteration = read_file('prompts/task_reiteration.txt')
-few_shot_answer1 = read_file('prompts/few_shot_answer1.txt')
-few_shot_example2 = read_file('prompts/few_shot_example2.txt')
-few_shot_answer2 = read_file('prompts/few_shot_answer2.txt')
 recommendation_answer = read_file('prompts/recommendation_answer.txt')
 summarisation_answer = read_file('prompts/summarisation_answer.txt')
 
@@ -95,7 +45,7 @@ summarisation_answer = read_file('prompts/summarisation_answer.txt')
 client = OpenAI(api_key=key)
 
 #Load the image and convert to Base64
-logo_base64 = get_base64_image("avatar_image.png")
+logo_base64 = get_base64_image("title_image.png")
 
 #Embed the Base64 image in HTML
 st.markdown(f"""
@@ -125,9 +75,6 @@ if 'background_messages' not in st.session_state:
     #Provide the links for each candidate item
     {"role": "system", "content": links_prompt_string},
 
-    #Provide the descriptions for each candidate item
-    {"role": "system", "content": item_descriptions_prompt_string},
-
     ###Few-shot example - recommendation
 
     #Provide prompt
@@ -143,62 +90,6 @@ if 'background_messages' not in st.session_state:
     
     #Provide expected output
     {"role": "assistant", "content": f"this is an example of a good answer to this question{summarisation_answer}", "example": True},
-
-    ####Few-shot example - personalisation 1
-
-    #Provide details of which items the user has already interacted with
-    #Provide information about similar items to the one(s) that the user has already interacted with
-    #Provide details about the user's profile
-    #Provide details about the user's biography
-    #Provide details of user group preferences
-    #{"role": "system", "content": few_shot_example1},
-    
-    #Reiterate the task
-    #{"role": "system", "content": task_reiteration},
-    #{"role": "system", "content": "Remember that you should not recommend items that the user has already interacted with, which are FREL (FAO), NFMS (FAO), PAM (FAO). If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are Carbon markets for REDD+ (UNEP), REDD+ finance (UNEP), REDD+ safeguards (UNEP)"},
-    
-    #Provide prompt
-    #{"role": "user", "content": "Which items would you recommend to me?", "example": True},
-    
-    #Provide expected output
-    #{"role": "assistant", "content": few_shot_answer1, "example": True},
-
-    ####Few-shot example - personalisation 2
-
-    #Provide details of which items the user has already interacted with
-    #Provide information about similar items to the one(s) that the user has already interacted with
-    #Provide details about the user's profile
-    #Provide details about the user's biography
-    #Provide details of user group preferences
-    #{"role": "system", "content": few_shot_example2},
-
-    #Reiterate the task
-    #{"role": "system", "content": task_reiteration},
-    #{"role": "system", "content": "Remember that you should not recommend items that the user has already interacted with, which are REDD+ finance (UNEP), Gender and REDD+ (UNDP), REDD+ under UNFCCC (UNDP), Social inclusion and stakeholder engagement (UNDP), REDD+ safeguards (UNEP). If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are FREL (FAO), National Strategies and Action Plans (UNDP), NFMS (FAO)"},
-    
-    #Provide prompt
-    #{"role": "user", "content": "Which items would you recommend to me? I have a particular interest in forest monitoring", "example": True},
-
-    #Provide expected output
-    #{"role": "assistant", "content": few_shot_answer2, "example": True},
-
-    ####Actual task
-
-    #Provide details of which items the user has already interacted with
-    #{"role": "system", "content": interaction_prompt_string},
-
-    #Provide information about similar items to the one(s) that the user has already interacted with
-    #{"role": "system", "content": similiar_item_prompt_string},
-    
-    #Provide details about the user's profile
-    #{"role": "system", "content": user_profile_prompt_string},
-    
-    #Provide details about the user's biography
-    #{"role": "system", "content": bio_prompt_string},
-    
-    #Reiterate the task
-    #{"role": "system", "content": task_reiteration},
-    #{"role": "system", "content": f"Remember that you should not recommend items that the user has already interacted with, which are {interacted_items}. If there is no relevant information provided by the user or available from their profile or biography, the default should be to recommend the items that are most similar to the items the user has already interacted with, which are {top_3}"},
     
   ]
     
@@ -223,17 +114,23 @@ if user_input := st.chat_input("You:"):
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Retrieve relevant text based on the user's input
-    #retrieved_text = retrieve_documents(user_input, doc_embeddings, background_docs_chunks)
+    # Retrieve relevant items based on the user's input
+    retrieved_items = retrieve_similar_items(user_input, item_faiss_index, item_list)
 
-    # Retrieve relevant text using FAISS
-    retrieved_text = retrieve_documents(user_input, faiss_index, background_docs_chunks)
+    # Print the retrieved items for testing
+    #print(f"Retrieved Items:\n{retrieved_items}\n")
+
+    # Format the retrieved items into a prompt-friendly string
+    retrieved_items_prompt = "The most relevant items based on the user's query appear to be:\n" + "\n".join(f"- {item}" for item in retrieved_items)
+
+    # Retrieve relevant docs using FAISS
+    retrieved_text = retrieve_documents(user_input, doc_faiss_index, background_docs_chunks)
 
     # Print the retrieved context for testing
     #print(f"Retrieved Context:\n{retrieved_text}\n")
 
-    # Add retrieved context to the background conversation history
-    context = f"Context: {retrieved_text}\n\nUser Query: {user_input}"
+    # Add retrieved context and items to the background conversation history
+    context = f"{retrieved_items_prompt}\n\nContext: {retrieved_text}\n\nUser Query: {user_input}"
     st.session_state.background_messages.append({"role": "system", "content": context})
 
     # Add a final reminder prompt for the bot
